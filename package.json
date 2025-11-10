@@ -45,6 +45,8 @@
 		"vite-plugin-devtools-json": "^1.0.0"
 	},
 	"dependencies": {
+		"@faker-js/faker": "^10.1.0",
+		"@sveltejs/adapter-static": "^3.0.10",
 		"@tanstack/svelte-virtual": "^3.13.12"
 	}
 }
