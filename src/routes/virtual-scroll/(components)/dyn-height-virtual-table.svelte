@@ -4,6 +4,7 @@
 		getCoreRowModel,
 		getSortedRowModel,
 		type ColumnDef,
+		type HeaderGroup,
 		type SortingState
 	} from '@tanstack/table-core';
 	import { createVirtualizer } from '@tanstack/svelte-virtual';
@@ -12,8 +13,12 @@
 	import { createSvelteTable, FlexRender, renderSnippet } from '$lib/components/ui/data-table';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { untrack } from 'svelte';
+	import { cn } from '$lib/utils';
+	import Icon from '@iconify/svelte';
+	import { command } from '$app/server';
 
 	let virtualListEl: HTMLDivElement;
+	let virtualItemEls: HTMLTableRowElement[] = $state([]);
 	let sorting: SortingState = $state([]);
 
 	const columnHelper = createColumnHelper<Person>();
@@ -106,12 +111,22 @@
 		// svelte-ignore state_referenced_locally
 		count: data.length,
 		getScrollElement: () => virtualListEl,
-		estimateSize: () => 34,
+		estimateSize: () => 1,
 		overscan: 20
+	});
+	// estimateSize: () => 34,
+
+	$effect(() => {
+		console.log('measure elements', virtualItemEls.length);
+		collapse;
+		if (virtualItemEls.length > 0)
+			untrack(() => {
+				virtualItemEls.forEach((el) => $virtualizer.measureElement(el));
+				$virtualizer.measure();
+			});
 	});
 
 	$effect(() => {
-		console.log('set option triggered');
 		const newLen = data.length;
 		untrack(() => {
 			$virtualizer.setOptions({
@@ -119,11 +134,21 @@
 			});
 		});
 	});
+
+	// $effect(() => {
+	// 	collapse;
+	// 	untrack(() => {
+	// 		console.log('collapse changed, measure all');
+	// 		$virtualizer.measure();
+	// 	});
+	// });
 </script>
 
 <div>collapse: {collapse}</div>
 
-<div class="wrap-anywhere">virtualIndexes: {$virtualizer.getVirtualIndexes()}</div>
+<div class="h-[150px] overflow-auto pb-10 wrap-anywhere">
+	virtualIndexes: {$virtualizer.getVirtualIndexes()}
+</div>
 
 <Button
 	onclick={() => {
@@ -133,57 +158,87 @@
 	{collapse ? 'Expand More Info' : 'Collapse More Info'}
 </Button>
 
-<div class="m-4 max-h-screen w-full overflow-auto rounded-md border p-4" bind:this={virtualListEl}>
+<div
+	class={cn(
+		'relative scrollbar-thin flex max-h-screen w-fit max-w-full overflow-auto rounded-md border p-2 scrollbar-corner-sky-500 scrollbar-thumb-slate-700 scrollbar-track-slate-300'
+	)}
+	bind:this={virtualListEl}
+>
 	<Table.Root
-		style="position: relative; height: {$virtualizer.getTotalSize()}px;"
-		class="[display:initial]"
+		style="height: {$virtualizer.getVirtualItems().length == 0
+			? $virtualizer.getTotalSize() + 95 + 96
+			: $virtualizer.getTotalSize() + 95}px;"
+		class="[display:initial] text-xs!"
 	>
-		<Table.Header>
+		<Table.Header class="sticky top-0 z-10">
 			{#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
-				<Table.Row>
-					{#each headerGroup.headers as header (header.id)}
-						<Table.Head
-							colspan={header.colSpan}
-							style="width: {header.getSize()}px;"
-							class="border"
-						>
-							{#if !header.isPlaceholder}
-								<button
-									class:sortable-header={header.column.getCanSort()}
-									disabled={!header.column.getCanSort()}
-									onclick={header.column.getToggleSortingHandler()}
-								>
-									<FlexRender
-										content={header.column.columnDef.header}
-										context={header.getContext()}
-									/>
-									{#if header.column.getIsSorted()}
-										{header.column.getIsSorted() === 'desc' ? ' 🔽' : ' 🔼'}
-									{/if}
-								</button>
-							{/if}
-						</Table.Head>
-					{/each}
-				</Table.Row>
+				{@render renderHeader(headerGroup)}
 			{/each}
 		</Table.Header>
 		<Table.Body>
 			{@const rows = table.getRowModel().rows}
+			{@const firstItem = $virtualizer.getVirtualItems()[0]}
 			{#each $virtualizer.getVirtualItems() as item, idx (item.index)}
 				{@const row = rows[item.index]}
 				<Table.Row
-					style="height: {item.size}px; transform: translateY({item.start - idx * item.size}px);"
+					data-state={row.getIsSelected() && 'selected'}
+					data-index={item.index}
+					data-idx={idx}
+					data-item-start={item.start}
+					data-item-size={item.size}
+					class="first:border-t hover:bg-blue-100"
+					style="transform: translateY({firstItem.start}px);"
+					bind:ref={virtualItemEls[idx]}
 				>
 					{#each row.getVisibleCells() as cell (cell.id)}
-						<Table.Cell class="h-0 border border-gray-200 px-1 py-0">
+						<Table.Cell
+							class={cn(
+								'h-0 border-r border-b border-gray-200 px-1 py-0 first:border-l',
+								idx === 0 ? 'border-t' : ''
+							)}
+						>
 							<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
 						</Table.Cell>
 					{/each}
+				</Table.Row>
+			{:else}
+				<Table.Row>
+					<Table.Cell class="h-24 text-center sticky left-0">
+						<span class="font-bold flex gap-2">
+							<Icon icon="fluent-color:warning-16" width="16" height="16" />
+							No results.
+						</span>
+					</Table.Cell>
 				</Table.Row>
 			{/each}
 		</Table.Body>
 	</Table.Root>
 </div>
+
+{#snippet renderHeader(headerGroup: HeaderGroup<Person>)}
+	<Table.Row class="bg-gray-300">
+		{#each headerGroup.headers as header (header.id)}
+			<Table.Head
+				colspan={header.colSpan}
+				style="width: {header.getSize()}px;"
+				class="border-t border-l last:border-r"
+			>
+				{#if !header.isPlaceholder}
+					<button
+						class:sortable-header={header.column.getCanSort()}
+						disabled={!header.column.getCanSort()}
+						onclick={header.column.getToggleSortingHandler()}
+					>
+						<FlexRender content={header.column.columnDef.header} context={header.getContext()} />
+						{#if header.column.getIsSorted()}
+							{header.column.getIsSorted() === 'desc' ? ' 🔽' : ' 🔼'}
+						{/if}
+					</button>
+				{/if}
+			</Table.Head>
+		{/each}
+	</Table.Row>
+{/snippet}
 
 {#snippet multiLineCell(param: {
 	status: 'relationship' | 'complicated' | 'single';
