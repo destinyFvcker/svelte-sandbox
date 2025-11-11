@@ -11,11 +11,11 @@
 	}: WithElementRef<HTMLTableAttributes> = $props();
 </script>
 
-<div data-slot="table-container" class="relative w-full overflow-x-auto" {style}>
+<div data-slot="table-container" class="" {style}>
 	<table
 		bind:this={ref}
 		data-slot="table"
-		class={cn('w-full caption-bottom text-sm', className)}
+		class={cn('w-full caption-bottom border-separate border-spacing-0 text-sm', className)}
 		{...restProps}
 	>
 		{@render children?.()}

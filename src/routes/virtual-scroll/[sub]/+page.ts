@@ -1,6 +1,6 @@
 import type { PageLoad } from './$types.js';
 
-const possibleSubPages = ['simple'];
+const possibleSubPages = ['simple', 'dynamic-height', 'grid'];
 
 export const entries = () => {
 	return possibleSubPages.map((sub) => {

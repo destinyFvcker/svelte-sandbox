@@ -1,5 +1,6 @@
 <script lang="ts">
 	import {
+		createColumnHelper,
 		getCoreRowModel,
 		getSortedRowModel,
 		type ColumnDef,
@@ -8,12 +9,17 @@
 	import { createVirtualizer } from '@tanstack/svelte-virtual';
 	import { makeData, type Person } from '../(data)/make-simple-data';
 	import * as Table from '$lib/components/ui/table/index.js';
-	import { createSvelteTable, FlexRender } from '$lib/components/ui/data-table';
+	import { createSvelteTable, FlexRender, renderSnippet } from '$lib/components/ui/data-table';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import { untrack } from 'svelte';
 
 	let virtualListEl: HTMLDivElement;
 	let sorting: SortingState = $state([]);
 
-	const columns: ColumnDef<Person>[] = $state([
+	const columnHelper = createColumnHelper<Person>();
+	let collapse = $state(true);
+
+	const columns: ColumnDef<Person>[] = $derived([
 		{
 			accessorKey: 'id',
 			header: 'ID',
@@ -40,20 +46,39 @@
 			header: 'Visits',
 			size: 50
 		},
-		{
-			accessorKey: 'status',
-			header: 'Status'
-		},
-		{
-			accessorKey: 'progress',
-			header: 'Profile Progress',
-			size: 80
-		},
-		{
-			accessorKey: 'createdAt',
-			header: 'Created At',
-			cell: (info) => info.getValue<Date>().toLocaleString()
-		}
+		columnHelper.group({
+			id: 'more-info',
+			header: 'More Info',
+			columns: collapse
+				? [
+						columnHelper.display({
+							id: 'collapsed-1',
+							header: 'ssss',
+							cell: (props) =>
+								renderSnippet(multiLineCell, {
+									status: props.row.original.status,
+									progress: props.row.original.progress,
+									createdAt: props.row.original.createdAt
+								})
+						})
+					]
+				: [
+						{
+							accessorKey: 'status',
+							header: 'Status'
+						},
+						{
+							accessorKey: 'progress',
+							header: 'Profile Progress',
+							size: 80
+						},
+						{
+							accessorKey: 'createdAt',
+							header: 'Created At',
+							cell: (info) => info.getValue<Date>().toLocaleString()
+						}
+					]
+		})
 	]);
 
 	let data: Person[] = $state.raw(makeData(50_000));
@@ -86,21 +111,42 @@
 	});
 
 	$effect(() => {
-		$virtualizer.setOptions({
-			count: table.getRowModel().rows.length
+		console.log('set option triggered');
+		const newLen = data.length;
+		untrack(() => {
+			$virtualizer.setOptions({
+				count: newLen
+			});
 		});
 	});
 </script>
 
+<div>collapse: {collapse}</div>
+
 <div class="wrap-anywhere">virtualIndexes: {$virtualizer.getVirtualIndexes()}</div>
 
+<Button
+	onclick={() => {
+		collapse = !collapse;
+	}}
+>
+	{collapse ? 'Expand More Info' : 'Collapse More Info'}
+</Button>
+
 <div class="m-4 max-h-screen w-full overflow-auto rounded-md border p-4" bind:this={virtualListEl}>
-	<Table.Root style="position: relative; height: {$virtualizer.getTotalSize()}px;">
+	<Table.Root
+		style="position: relative; height: {$virtualizer.getTotalSize()}px;"
+		class="[display:initial]"
+	>
 		<Table.Header>
 			{#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
 				<Table.Row>
 					{#each headerGroup.headers as header (header.id)}
-						<Table.Head colspan={header.colSpan} style="width: {header.getSize()}px;">
+						<Table.Head
+							colspan={header.colSpan}
+							style="width: {header.getSize()}px;"
+							class="border"
+						>
 							{#if !header.isPlaceholder}
 								<button
 									class:sortable-header={header.column.getCanSort()}
@@ -129,7 +175,7 @@
 					style="height: {item.size}px; transform: translateY({item.start - idx * item.size}px);"
 				>
 					{#each row.getVisibleCells() as cell (cell.id)}
-						<Table.Cell>
+						<Table.Cell class="h-0 border border-gray-200 px-1 py-0">
 							<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
 						</Table.Cell>
 					{/each}
@@ -138,6 +184,18 @@
 		</Table.Body>
 	</Table.Root>
 </div>
+
+{#snippet multiLineCell(param: {
+	status: 'relationship' | 'complicated' | 'single';
+	progress: number;
+	createdAt: Date;
+})}
+	<div class="flex flex-col gap-2">
+		<span>Status: {param.status}</span>
+		<span>Progress: {param.progress}%</span>
+		<span>Created At: {param.createdAt.toLocaleDateString()}</span>
+	</div>
+{/snippet}
 
 <style>
 	button {

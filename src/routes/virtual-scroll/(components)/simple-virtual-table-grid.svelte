@@ -3,12 +3,15 @@
 		getCoreRowModel,
 		getSortedRowModel,
 		type ColumnDef,
+		type HeaderGroup,
 		type SortingState
 	} from '@tanstack/table-core';
 	import { createVirtualizer } from '@tanstack/svelte-virtual';
 	import { makeData, type Person } from '../(data)/make-simple-data';
 	import * as Table from '$lib/components/ui/table/index.js';
 	import { createSvelteTable, FlexRender } from '$lib/components/ui/data-table';
+	import { cn } from '$lib/utils';
+	import Icon from '@iconify/svelte';
 
 	let virtualListEl: HTMLDivElement;
 	let sorting: SortingState = $state([]);
@@ -94,31 +97,21 @@
 
 <div class="wrap-anywhere">virtualIndexes: {$virtualizer.getVirtualIndexes()}</div>
 
-<div class="m-4 max-h-screen w-full overflow-auto rounded-md border p-4" bind:this={virtualListEl}>
-	<Table.Root style="position: relative; height: {$virtualizer.getTotalSize()}px;">
-		<Table.Header>
+<div
+	class={cn(
+		'relative scrollbar-thin flex max-h-screen w-fit max-w-full overflow-auto rounded-md border p-2 scrollbar-corner-sky-500 scrollbar-thumb-slate-700 scrollbar-track-slate-300'
+	)}
+	bind:this={virtualListEl}
+>
+	<Table.Root
+		style="height: {$virtualizer.getVirtualItems().length == 0
+			? $virtualizer.getTotalSize() + 95 + 96
+			: $virtualizer.getTotalSize() + 95}px;"
+		class="[display:initial] text-xs!"
+	>
+		<Table.Header class="sticky top-0 z-10">
 			{#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
-				<Table.Row>
-					{#each headerGroup.headers as header (header.id)}
-						<Table.Head colspan={header.colSpan} style="width: {header.getSize()}px;">
-							{#if !header.isPlaceholder}
-								<button
-									class:sortable-header={header.column.getCanSort()}
-									disabled={!header.column.getCanSort()}
-									onclick={header.column.getToggleSortingHandler()}
-								>
-									<FlexRender
-										content={header.column.columnDef.header}
-										context={header.getContext()}
-									/>
-									{#if header.column.getIsSorted()}
-										{header.column.getIsSorted() === 'desc' ? ' 🔽' : ' 🔼'}
-									{/if}
-								</button>
-							{/if}
-						</Table.Head>
-					{/each}
-				</Table.Row>
+				{@render renderHeader(headerGroup)}
 			{/each}
 		</Table.Header>
 		<Table.Body>
@@ -126,18 +119,59 @@
 			{#each $virtualizer.getVirtualItems() as item, idx (item.index)}
 				{@const row = rows[item.index]}
 				<Table.Row
+					data-state={row.getIsSelected() && 'selected'}
+					class="first:border-t hover:bg-blue-100"
 					style="height: {item.size}px; transform: translateY({item.start - idx * item.size}px);"
 				>
 					{#each row.getVisibleCells() as cell (cell.id)}
-						<Table.Cell>
+						<Table.Cell
+							class={cn(
+								'h-0 border-r border-b border-gray-200 px-1 py-0 first:border-l',
+								idx === 0 ? 'border-t' : ''
+							)}
+						>
 							<FlexRender content={cell.column.columnDef.cell} context={cell.getContext()} />
 						</Table.Cell>
 					{/each}
+				</Table.Row>
+			{:else}
+				<Table.Row>
+					<Table.Cell class="h-24 text-center sticky left-0">
+						<span class="font-bold flex gap-2">
+							<Icon icon="fluent-color:warning-16" width="16" height="16" />
+							No results.
+						</span>
+					</Table.Cell>
 				</Table.Row>
 			{/each}
 		</Table.Body>
 	</Table.Root>
 </div>
+
+{#snippet renderHeader(headerGroup: HeaderGroup<Person>)}
+	<Table.Row class="bg-gray-300">
+		{#each headerGroup.headers as header (header.id)}
+			<Table.Head
+				colspan={header.colSpan}
+				style="width: {header.getSize()}px;"
+				class="border-t border-l last:border-r"
+			>
+				{#if !header.isPlaceholder}
+					<button
+						class:sortable-header={header.column.getCanSort()}
+						disabled={!header.column.getCanSort()}
+						onclick={header.column.getToggleSortingHandler()}
+					>
+						<FlexRender content={header.column.columnDef.header} context={header.getContext()} />
+						{#if header.column.getIsSorted()}
+							{header.column.getIsSorted() === 'desc' ? ' 🔽' : ' 🔼'}
+						{/if}
+					</button>
+				{/if}
+			</Table.Head>
+		{/each}
+	</Table.Row>
+{/snippet}
 
 <style>
 	button {
