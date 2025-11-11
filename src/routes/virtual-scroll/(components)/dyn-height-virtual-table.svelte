@@ -12,7 +12,7 @@
 	import * as Table from '$lib/components/ui/table/index.js';
 	import { createSvelteTable, FlexRender, renderSnippet } from '$lib/components/ui/data-table';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { untrack } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { cn } from '$lib/utils';
 	import Icon from '@iconify/svelte';
 	import { command } from '$app/server';
@@ -111,43 +111,41 @@
 		// svelte-ignore state_referenced_locally
 		count: data.length,
 		getScrollElement: () => virtualListEl,
-		estimateSize: () => 1,
-		overscan: 20
+		estimateSize: () => 65,
+		// svelte-ignore state_referenced_locally
+		overscan: Math.min(data.length / 8, 100),
+		debug: true
 	});
-	// estimateSize: () => 34,
 
 	$effect(() => {
-		console.log('measure elements', virtualItemEls.length);
 		collapse;
 		if (virtualItemEls.length > 0)
 			untrack(() => {
-				virtualItemEls.forEach((el) => $virtualizer.measureElement(el));
 				$virtualizer.measure();
+				virtualItemEls.forEach((el) => $virtualizer.measureElement(el));
 			});
 	});
 
 	$effect(() => {
 		const newLen = data.length;
 		untrack(() => {
-			$virtualizer.setOptions({
-				count: newLen
-			});
+			// $virtualizer.scrollToOffset(0);
+			$virtualizer._willUpdate();
+			virtualItemEls.forEach((el) => $virtualizer.measureElement(el));
 		});
 	});
-
-	// $effect(() => {
-	// 	collapse;
-	// 	untrack(() => {
-	// 		console.log('collapse changed, measure all');
-	// 		$virtualizer.measure();
-	// 	});
-	// });
 </script>
 
-<div>collapse: {collapse}</div>
-
-<div class="h-[150px] overflow-auto pb-10 wrap-anywhere">
-	virtualIndexes: {$virtualizer.getVirtualIndexes()}
+<div class="mb-4 space-y-2">
+	<div>{$virtualizer.getTotalSize()}</div>
+	<div>data length: {data.length}</div>
+	<div class="h-[100px] overflow-auto wrap-anywhere">
+		virtualIndexes len: {$virtualizer.getVirtualItems().length}
+		virtualIndexes: {$virtualizer.getVirtualIndexes()}
+	</div>
+	<div class="h-[100px] overflow-auto">
+		virtualizer options: {JSON.stringify($virtualizer.options)}
+	</div>
 </div>
 
 <Button
@@ -156,6 +154,22 @@
 	}}
 >
 	{collapse ? 'Expand More Info' : 'Collapse More Info'}
+</Button>
+
+<Button
+	onclick={() => {
+		data = makeData(1000);
+	}}
+>
+	set shorter data
+</Button>
+
+<Button
+	onclick={() => {
+		data = makeData(50_000);
+	}}
+>
+	set long data
 </Button>
 
 <div
