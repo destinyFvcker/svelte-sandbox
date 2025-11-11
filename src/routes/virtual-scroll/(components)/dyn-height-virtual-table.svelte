@@ -15,7 +15,6 @@
 	import { onMount, untrack } from 'svelte';
 	import { cn } from '$lib/utils';
 	import Icon from '@iconify/svelte';
-	import { command } from '$app/server';
 
 	let virtualListEl: HTMLDivElement;
 	let virtualItemEls: HTMLTableRowElement[] = $state([]);
@@ -107,44 +106,76 @@
 		getSortedRowModel: getSortedRowModel()
 	});
 
-	let virtualizer = createVirtualizer<HTMLDivElement, HTMLTableRowElement>({
-		// svelte-ignore state_referenced_locally
-		count: data.length,
-		getScrollElement: () => virtualListEl,
-		estimateSize: () => 65,
-		// svelte-ignore state_referenced_locally
-		overscan: Math.min(data.length / 8, 100),
-		debug: true
+	let virtualizer = $derived.by(() => {
+		console.log('overriding virtualizer due to collapse change', collapse);
+		collapse;
+		return createVirtualizer<HTMLDivElement, HTMLTableRowElement>({
+			count: data.length,
+			getScrollElement: () => virtualListEl,
+			estimateSize: () => 65,
+			overscan: Math.min(data.length / 8, 100),
+			debug: true
+		});
 	});
 
 	$effect(() => {
 		collapse;
 		if (virtualItemEls.length > 0)
 			untrack(() => {
-				$virtualizer.measure();
+				console.log('Measuring elements due to collapse change??? fucking tanstack virtualizer!');
 				virtualItemEls.forEach((el) => $virtualizer.measureElement(el));
 			});
 	});
 
-	$effect(() => {
-		const newLen = data.length;
-		untrack(() => {
-			// $virtualizer.scrollToOffset(0);
-			$virtualizer._willUpdate();
-			virtualItemEls.forEach((el) => $virtualizer.measureElement(el));
-		});
+	onMount(() => {
+		$virtualizer._willUpdate();
 	});
+
+	// $effect(() => {
+	// 	const newLen = data.length;
+	// 	untrack(() => {
+	// 		$virtualizer.setOptions({
+	// 			count: newLen
+	// 		});
+	// 	});
+	// });
 </script>
 
-<div class="mb-4 space-y-2">
-	<div>{$virtualizer.getTotalSize()}</div>
+<div class="mb-4 space-y-2 *:border-b *:border-solid *:border-gray-200">
+	<div class="text-yellow-500">
+		actual size = {data.length * (collapse ? 65 : 16.55)} px
+	</div>
+	<div>virtualizerSize: {$virtualizer.getTotalSize()}</div>
 	<div>data length: {data.length}</div>
 	<div class="h-[100px] overflow-auto wrap-anywhere">
-		virtualIndexes len: {$virtualizer.getVirtualItems().length}
-		virtualIndexes: {$virtualizer.getVirtualIndexes()}
+		<p>virtualIndexes len: {$virtualizer.getVirtualItems().length}</p>
+		<p>virtualIndexes: {$virtualizer.getVirtualIndexes()}</p>
 	</div>
 	<div class="h-[100px] overflow-auto">
-		virtualizer options: {JSON.stringify($virtualizer.options)}
+		virtualizer options: {JSON.stringify($virtualizer.options, null, 2)}
+	</div>
+	<div>isScrolling: {$virtualizer.isScrolling}</div>
+	<div>
+		last measurement: {JSON.stringify(
+			$virtualizer.measurementsCache[$virtualizer.measurementsCache.length - 1],
+			null,
+			2
+		)}
+	</div>
+	<div class="wrap-break-words h-[200px] overflow-x-hidden overflow-y-auto">
+		measurementsCache: {JSON.stringify($virtualizer.measurementsCache, null, 2)}
+	</div>
+	<div>scrollRect: {JSON.stringify($virtualizer.scrollRect, null, 2)}</div>
+	<div>scrollOffset: {$virtualizer.scrollOffset}</div>
+	<div>scrollDirection: {$virtualizer.scrollDirection ?? 'static'}</div>
+	<div class="h-[100px] overflow-auto">
+		elementsCache: {JSON.stringify($virtualizer.elementsCache, null, 2)}
+	</div>
+	<!-- <div class="wrap-break-words h-[200px] overflow-x-hidden overflow-y-auto">
+		itemSizeCache: {JSON.stringify($virtualizer.itemSizeCache, null, 2)}
+	</div> -->
+	<div>
+		range:{JSON.stringify($virtualizer.range, null, 2)}
 	</div>
 </div>
 
