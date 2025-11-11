@@ -119,6 +119,8 @@
 	// svelte-ignore state_referenced_locally
 	let previousPageIndex = $state(pagination.pageIndex);
 
+	const BUFFER_ROW_HEIGHT = 60; // 缓冲行高度(固定)
+
 	// 防抖函数
 	function debounce<T extends (...args: any[]) => void>(func: T, delay: number) {
 		let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -180,13 +182,14 @@
 				if (!tableContainerRef) return;
 
 				if (scrollDirection === 'down') {
-					// 向下翻页,滚动到顶部
-					tableContainerRef.scrollTop = 0;
-					console.log('已重置到顶部');
+					// 向下翻页,滚动位置设为刚好隐藏顶部缓冲行
+					tableContainerRef.scrollTop = BUFFER_ROW_HEIGHT + 1;
+					console.log('已重置到顶部(隐藏缓冲行), scrollTop:', tableContainerRef.scrollTop);
 				} else if (scrollDirection === 'up') {
-					// 向上翻页,滚动到底部
-					tableContainerRef.scrollTop = tableContainerRef.scrollHeight;
-					console.log('已重置到底部');
+					// 向上翻页,滚动位置设为刚好隐藏底部缓冲行
+					const maxScroll = tableContainerRef.scrollHeight - tableContainerRef.clientHeight;
+					tableContainerRef.scrollTop = maxScroll - BUFFER_ROW_HEIGHT - 1;
+					console.log('已重置到底部(隐藏缓冲行), scrollTop:', tableContainerRef.scrollTop);
 				}
 
 				// 重置滚动方向
@@ -251,6 +254,17 @@
 				{/each}
 			</Table.Header>
 			<Table.Body>
+				<!-- 顶部缓冲行 - 始终存在 -->
+				{#if pagination.pageIndex > 0}
+					<Table.Row class="bg-blue-100" style="height: {BUFFER_ROW_HEIGHT}px;">
+						<Table.Cell colspan={table.getAllColumns().length} class="text-center">
+							<div class="flex items-center justify-center gap-2 py-4">
+								<Icon icon="mdi:arrow-up" width="24" height="24" class="text-blue-600" />
+								<span class="font-semibold text-blue-600">继续向上滑动返回上一页</span>
+							</div>
+						</Table.Cell>
+					</Table.Row>
+				{/if}
 				{#each table.getRowModel().rows as row, idx (row.id)}
 					<Table.Row
 						data-state={row.getIsSelected() && 'selected'}
@@ -278,6 +292,16 @@
 						</Table.Cell>
 					</Table.Row>
 				{/each}
+
+				<!-- 底部缓冲行 - 始终存在 -->
+				<Table.Row class="bg-green-100" style="height: {BUFFER_ROW_HEIGHT}px;">
+					<Table.Cell colspan={table.getAllColumns().length} class="text-center">
+						<div class="flex items-center justify-center gap-2 py-4">
+							<span class="font-semibold text-green-600">继续向下滑动进入下一页</span>
+							<Icon icon="mdi:arrow-down" width="24" height="24" class="text-green-600" />
+						</div>
+					</Table.Cell>
+				</Table.Row>
 			</Table.Body>
 		</Table.Root>
 	</Card.Content>
