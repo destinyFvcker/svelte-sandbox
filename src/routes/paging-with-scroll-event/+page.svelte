@@ -18,7 +18,7 @@
 	import { cn } from '$lib/utils';
 
 	let sorting: SortingState = $state([]);
-	let pagination: PaginationState = $state({ pageIndex: 0, pageSize: 200 });
+	let pagination: PaginationState = $state({ pageIndex: 0, pageSize: 50 });
 
 	const columnHelper = createColumnHelper<Person>();
 	let collapse = $state(true);
@@ -85,6 +85,27 @@
 		})
 	]);
 
+	// 递归计算所有叶子列的总宽度
+	function calculateTotalLeafColumnWidth(cols: ColumnDef<Person>[]): number {
+		let total = 0;
+
+		for (const col of cols) {
+			// 检查是否是列组(有 columns 属性)
+			if ('columns' in col && col.columns) {
+				// 递归处理子列
+				total += calculateTotalLeafColumnWidth(col.columns);
+			} else {
+				// 叶子列,累加宽度
+				total += 1;
+			}
+		}
+
+		return total;
+	}
+
+	// 动态计算总宽度
+	const totalLeafColumnWidth = $derived(calculateTotalLeafColumnWidth(columns));
+
 	let data: Person[] = $state.raw(makeData(50_000));
 	const table = createSvelteTable({
 		get data() {
@@ -118,8 +139,9 @@
 	let scrollDirection: 'up' | 'down' | null = $state(null); // 追踪滚动方向
 	// svelte-ignore state_referenced_locally
 	let previousPageIndex = $state(pagination.pageIndex);
+	let scrollTop = $state(0); // 追踪 scrollTop 的响应式变量
 
-	const BUFFER_ROW_HEIGHT = 60; // 缓冲行高度(固定)
+	const BUFFER_ROW_HEIGHT = 72; // 缓冲行高度(固定)
 
 	// 防抖函数
 	function debounce<T extends (...args: any[]) => void>(func: T, delay: number) {
@@ -158,7 +180,7 @@
 		if (!tableContainerRef) return;
 
 		const { scrollTop } = tableContainerRef;
-		const threshold = 10; // 距离顶部 10px 就触发
+		const threshold = 20; // 距离顶部 10px 就触发
 
 		if (scrollTop <= threshold && pagination.pageIndex > 0) {
 			console.log('滚动到顶部了!', {
@@ -183,12 +205,12 @@
 
 				if (scrollDirection === 'down') {
 					// 向下翻页,滚动位置设为刚好隐藏顶部缓冲行
-					tableContainerRef.scrollTop = BUFFER_ROW_HEIGHT + 1;
+					tableContainerRef.scrollTop = BUFFER_ROW_HEIGHT + 10;
 					console.log('已重置到顶部(隐藏缓冲行), scrollTop:', tableContainerRef.scrollTop);
 				} else if (scrollDirection === 'up') {
 					// 向上翻页,滚动位置设为刚好隐藏底部缓冲行
 					const maxScroll = tableContainerRef.scrollHeight - tableContainerRef.clientHeight;
-					tableContainerRef.scrollTop = maxScroll - BUFFER_ROW_HEIGHT - 1;
+					tableContainerRef.scrollTop = maxScroll - BUFFER_ROW_HEIGHT - 10;
 					console.log('已重置到底部(隐藏缓冲行), scrollTop:', tableContainerRef.scrollTop);
 				}
 
@@ -202,6 +224,9 @@
 
 	// 综合滚动处理函数
 	function handleScroll() {
+		if (tableContainerRef) {
+			scrollTop = tableContainerRef.scrollTop; // 更新响应式变量
+		}
 		checkIfScrolledToBottom();
 		checkIfScrolledToTop();
 	}
@@ -233,8 +258,10 @@
 		</Card.Description>
 	</Card.Header>
 	<Card.Content>
-		<div class="space-y-1 *:border-b-2">
+		<div class="space-y-1 pb-5 *:border-b-2">
 			<div>pagin param: {JSON.stringify(pagination, null, 2)}</div>
+			<div>scrollTop: {scrollTop}</div>
+			<div>总叶子列宽度: {totalLeafColumnWidth}px</div>
 		</div>
 		<Button
 			onclick={() => {
@@ -257,7 +284,7 @@
 				<!-- 顶部缓冲行 - 始终存在 -->
 				{#if pagination.pageIndex > 0}
 					<Table.Row class="bg-blue-100" style="height: {BUFFER_ROW_HEIGHT}px;">
-						<Table.Cell colspan={table.getAllColumns().length} class="text-center">
+						<Table.Cell colspan={table.getAllLeafColumns().length} class="text-center">
 							<div class="flex items-center justify-center gap-2 py-4">
 								<Icon icon="mdi:arrow-up" width="24" height="24" class="text-blue-600" />
 								<span class="font-semibold text-blue-600">继续向上滑动返回上一页</span>
@@ -295,7 +322,7 @@
 
 				<!-- 底部缓冲行 - 始终存在 -->
 				<Table.Row class="bg-green-100" style="height: {BUFFER_ROW_HEIGHT}px;">
-					<Table.Cell colspan={table.getAllColumns().length} class="text-center">
+					<Table.Cell colspan={table.getAllLeafColumns().length} class="text-center">
 						<div class="flex items-center justify-center gap-2 py-4">
 							<span class="font-semibold text-green-600">继续向下滑动进入下一页</span>
 							<Icon icon="mdi:arrow-down" width="24" height="24" class="text-green-600" />
