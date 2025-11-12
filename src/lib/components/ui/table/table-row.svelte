@@ -14,10 +14,11 @@
 	bind:this={ref}
 	data-slot="table-row"
 	class={cn(
-		'transition-colors data-[state=selected]:bg-muted hover:[&,&>svelte-css-wrapper]:[&>th,td]:bg-muted/50',
+		'transition-colors data-[state=selected]:bg-muted hover:[&,&>svelte-css-wrapper]:[&>th,td]:bg-muted',
 		className
 	)}
 	{...restProps}
 >
 	{@render children?.()}
 </tr>
+<!-- hover:[&,&>svelte-css-wrapper]:[&>th,td]:bg-muted/50 -->

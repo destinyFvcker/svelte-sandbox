@@ -6,11 +6,13 @@
 		getPaginationRowModel,
 		getSortedRowModel,
 		type ColumnDef,
+		type ColumnOrderState,
+		type ColumnPinningState,
 		type HeaderGroup,
 		type PaginationState,
 		type SortingState
 	} from '@tanstack/table-core';
-	import { makeData, type Person } from './(data)/make-simple-data';
+	import { makeData, type Person } from './(data)/make-many-col-data';
 	import { createSvelteTable, FlexRender, renderSnippet } from '$lib/components/ui/data-table';
 	import * as Table from '$lib/components/ui/table/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
@@ -19,37 +21,45 @@
 
 	let sorting: SortingState = $state([]);
 	let pagination: PaginationState = $state({ pageIndex: 0, pageSize: 50 });
+	let columnOrder: ColumnOrderState = $state([]);
+	let columnPinning: ColumnPinningState = $state({});
 
 	const columnHelper = createColumnHelper<Person>();
 	let collapse = $state(true);
 
 	const columns: ColumnDef<Person>[] = $derived([
-		{
-			accessorKey: 'id',
-			header: 'ID',
-			size: 60
-		},
-		{
-			accessorKey: 'firstName',
-			header: 'First Name',
-			cell: (info) => info.getValue()
-		},
-		{
-			accessorFn: (row) => row.lastName,
-			id: 'lastName',
-			header: 'Last Name',
-			cell: (info) => info.getValue()
-		},
-		{
-			accessorKey: 'age',
-			header: 'Age',
-			size: 50
-		},
-		{
-			accessorKey: 'visits',
-			header: 'Visits',
-			size: 50
-		},
+		columnHelper.group({
+			id: 'basic-info',
+			header: 'Basic Info',
+			columns: [
+				{
+					accessorKey: 'id',
+					header: 'ID',
+					size: 60
+				},
+				{
+					accessorKey: 'firstName',
+					header: 'First Name',
+					cell: (info) => info.getValue()
+				},
+				{
+					accessorFn: (row) => row.lastName,
+					id: 'lastName',
+					header: 'Last Name',
+					cell: (info) => info.getValue()
+				},
+				{
+					accessorKey: 'age',
+					header: 'Age',
+					size: 50
+				},
+				{
+					accessorKey: 'visits',
+					header: 'Visits',
+					size: 50
+				}
+			]
+		}),
 		columnHelper.group({
 			id: 'more-info',
 			header: 'More Info',
@@ -82,29 +92,54 @@
 							cell: (info) => info.getValue<Date>().toLocaleString()
 						}
 					]
+		}),
+		columnHelper.group({
+			id: 'contact-work-info',
+			header: 'Contact & Work Info',
+			columns: [
+				{
+					accessorKey: 'email',
+					header: 'Email'
+				},
+				{
+					accessorKey: 'address',
+					header: 'Address'
+				},
+				{
+					accessorKey: 'phone',
+					header: 'Phone'
+				},
+				{
+					accessorKey: 'company',
+					header: 'Company'
+				},
+				{
+					accessorKey: 'department',
+					header: 'Department'
+				},
+				{
+					accessorKey: 'city',
+					header: 'City'
+				},
+				{
+					accessorKey: 'startDate',
+					header: 'Start Date'
+				},
+				{
+					accessorKey: 'salary',
+					header: 'Salary'
+				},
+				{
+					accessorKey: 'manager',
+					header: 'Manager'
+				},
+				{
+					accessorKey: 'notes',
+					header: 'Notes'
+				}
+			]
 		})
 	]);
-
-	// 递归计算所有叶子列的总宽度
-	function calculateTotalLeafColumnWidth(cols: ColumnDef<Person>[]): number {
-		let total = 0;
-
-		for (const col of cols) {
-			// 检查是否是列组(有 columns 属性)
-			if ('columns' in col && col.columns) {
-				// 递归处理子列
-				total += calculateTotalLeafColumnWidth(col.columns);
-			} else {
-				// 叶子列,累加宽度
-				total += 1;
-			}
-		}
-
-		return total;
-	}
-
-	// 动态计算总宽度
-	const totalLeafColumnWidth = $derived(calculateTotalLeafColumnWidth(columns));
 
 	let data: Person[] = $state.raw(makeData(50_000));
 	const table = createSvelteTable({
@@ -120,6 +155,12 @@
 			},
 			get pagination() {
 				return pagination;
+			},
+			get columnOrder() {
+				return columnOrder;
+			},
+			get columnPinning() {
+				return columnPinning;
 			}
 		},
 		onSortingChange: (updater) => {
@@ -129,6 +170,14 @@
 		onPaginationChange: (updater) => {
 			if (updater instanceof Function) pagination = updater(pagination);
 			else pagination = updater;
+		},
+		onColumnOrderChange: (updater) => {
+			if (updater instanceof Function) columnOrder = updater(columnOrder);
+			else columnOrder = updater;
+		},
+		onColumnPinningChange: (updater) => {
+			if (updater instanceof Function) columnPinning = updater(columnPinning);
+			else columnPinning = updater;
 		},
 		getCoreRowModel: getCoreRowModel(),
 		getSortedRowModel: getSortedRowModel(),
@@ -141,7 +190,7 @@
 	let previousPageIndex = $state(pagination.pageIndex);
 	let scrollTop = $state(0); // 追踪 scrollTop 的响应式变量
 
-	const BUFFER_ROW_HEIGHT = 72; // 缓冲行高度(固定)
+	const BUFFER_ROW_HEIGHT = 100; // 缓冲行高度(固定)
 
 	// 防抖函数
 	function debounce<T extends (...args: any[]) => void>(func: T, delay: number) {
@@ -205,12 +254,12 @@
 
 				if (scrollDirection === 'down') {
 					// 向下翻页,滚动位置设为刚好隐藏顶部缓冲行
-					tableContainerRef.scrollTop = BUFFER_ROW_HEIGHT;
+					tableContainerRef.scrollTop = BUFFER_ROW_HEIGHT + 10;
 					console.log('已重置到顶部(隐藏缓冲行), scrollTop:', tableContainerRef.scrollTop);
 				} else if (scrollDirection === 'up') {
 					// 向上翻页,滚动位置设为刚好隐藏底部缓冲行
 					const maxScroll = tableContainerRef.scrollHeight - tableContainerRef.clientHeight;
-					tableContainerRef.scrollTop = maxScroll - BUFFER_ROW_HEIGHT;
+					tableContainerRef.scrollTop = maxScroll - BUFFER_ROW_HEIGHT - 10;
 					console.log('已重置到底部(隐藏缓冲行), scrollTop:', tableContainerRef.scrollTop);
 				}
 
@@ -232,7 +281,7 @@
 	}
 
 	// 防抖处理的滚动监听器
-	const debouncedScrollHandler = debounce(handleScroll, 200);
+	const debouncedScrollHandler = debounce(handleScroll, 500);
 
 	// 添加和移除事件监听器
 	$effect(() => {
@@ -261,7 +310,6 @@
 		<div class="space-y-1 pb-5 *:border-b-2">
 			<div>pagin param: {JSON.stringify(pagination, null, 2)}</div>
 			<div>scrollTop: {scrollTop}</div>
-			<div>总叶子列宽度: {totalLeafColumnWidth}px</div>
 		</div>
 		<Button
 			onclick={() => {
@@ -301,7 +349,7 @@
 						{#each row.getVisibleCells() as cell (cell.id)}
 							<Table.Cell
 								class={cn(
-									'h-0 border-r border-b border-gray-200 px-1 py-0 first:border-l',
+									'h-0 border-r border-b border-gray-200 px-1 py-0 first:sticky first:left-0 first:border-l first:bg-white',
 									idx === 0 ? 'border-t' : ''
 								)}
 							>
@@ -352,8 +400,9 @@
 			<Table.Head
 				colspan={header.colSpan}
 				style="width: {header.getSize()}px;"
-				class="border-t border-l last:border-r"
+				class={cn('border-t border-l')}
 			>
+				<!-- first:sticky first:left-0 first:bg-gray-300 -->
 				{#if !header.isPlaceholder}
 					<button
 						class:sortable-header={header.column.getCanSort()}
@@ -365,6 +414,40 @@
 							{header.column.getIsSorted() === 'desc' ? ' 🔽' : ' 🔼'}
 						{/if}
 					</button>
+				{/if}
+				{#if !header.isPlaceholder && header.column.getCanPin()}
+					<div class="flex justify-center gap-1">
+						{#if header.column.getIsPinned() !== 'left'}
+							<button
+								class="rounded border px-2"
+								onclick={() => {
+									header.column.pin('left');
+								}}
+							>
+								{'<='}
+							</button>
+						{/if}
+						{#if header.column.getIsPinned()}
+							<button
+								class="rounded border px-2"
+								onclick={() => {
+									header.column.pin(false);
+								}}
+							>
+								X
+							</button>
+						{/if}
+						{#if header.column.getIsPinned() !== 'right'}
+							<button
+								class="rounded border px-2"
+								onclick={() => {
+									header.column.pin('right');
+								}}
+							>
+								{'=>'}
+							</button>
+						{/if}
+					</div>
 				{/if}
 			</Table.Head>
 		{/each}
