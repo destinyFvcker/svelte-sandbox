@@ -13,4 +13,10 @@
 	<li>
 		<a href="/pin-custom-column-table"> 自定义来让一些列永远显示在最右侧（通过tailwindcss）</a>
 	</li>
+
+	<p>---</p>
+
+	<li>
+		<a href="/layer-charts"> Layer Charts - examples </a>
+	</li>
 </ol>
