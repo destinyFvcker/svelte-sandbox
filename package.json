@@ -51,6 +51,7 @@
 	},
 	"dependencies": {
 		"@faker-js/faker": "^10.1.0",
+		"@layerstack/utils": "^1.0.1",
 		"@sveltejs/adapter-static": "^3.0.10",
 		"@tanstack/svelte-virtual": "^3.13.12",
 		"d3-array": "^3.2.4",

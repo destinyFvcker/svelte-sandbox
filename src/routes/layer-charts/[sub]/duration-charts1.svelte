@@ -1,46 +1,35 @@
 <script lang="ts">
-	import { applyLanes, BarChart, Tooltip } from 'layerchart';
+	import { applyLanes, BarChart, Tooltip, Highlight } from 'layerchart';
 	import * as Chart from '$lib/components/ui/chart/index.js';
-	import { scaleTime } from 'd3-scale';
 	import { testDurationData } from '../(data)/test-duration-data';
 
 	function formatYear(number: number): string {
 		return Math.sign(number) === -1 ? Math.abs(number) + ' BC' : number + ' AD';
 	}
-	const chartConfig = {
-		desktop: {
-			label: 'Desktop',
-			color: '#2563eb'
-		},
-		mobile: {
-			label: 'Mobile',
-			color: '#60a5fa'
-		}
-	} satisfies Chart.ChartConfig;
-
-	// let renderContext: 'svg' | 'canvas' = $state('svg');
+	const chartConfig = {} satisfies Chart.ChartConfig;
 </script>
 
-<Chart.Container config={chartConfig} class="min-h-[200px] w-full">
-	<!-- <div class="h-[500px] rounded-sm border p-4"> -->
+<Chart.Container config={chartConfig} class="max-h-[400px]">
 	<BarChart
 		data={applyLanes(testDurationData)}
 		x={['start', 'end']}
 		y="lane"
 		c="region"
 		cRange={[
+			// 'var(--chart-1)',
+			// 'var(--chart-2)',
+			// 'var(--chart-3)',
 			'var(--color-danger)',
 			'var(--color-warning)',
 			'var(--color-success)',
-			'var(--color-info)',
-			'var(--color-primary)',
-			'var(--color-secondary)',
-			'var(--color-accent)'
+			'var(--chart-4)',
+			'var(--chart-5)'
 		]}
 		rule={false}
 		axis="x"
 		orientation="horizontal"
 		padding={{ left: 20, bottom: 36, right: 20 }}
+		grid={{ y: true, bandAlign: 'between' }}
 		props={{
 			xAxis: {
 				format: formatYear
@@ -51,9 +40,28 @@
 					truncate: { position: 'middle' }
 				}
 			},
-			tooltip: { context: { mode: 'bounds' } }
+			bars: {
+				// stroke: 'none',
+				radius: 5,
+				// insets: {
+				// 	left: 24
+				// },
+				rounded: 'all'
+				// initialWidth: 0,
+				// initialX: 0,
+				// motion: {
+				// 	x: { type: 'tween', duration: 500, easing: cubicInOut },
+				// 	width: { type: 'tween', duration: 500, easing: cubicInOut }
+				// }
+			}
 		}}
 	>
+		{#snippet belowMarks()}
+			<Highlight area={{ class: 'fill-muted' }} />
+		{/snippet}
+		<!-- {#snippet tooltip()}
+			<Chart.Tooltip />
+		{/snippet} -->
 		{#snippet tooltip({ context })}
 			<Tooltip.Root {context}>
 				{#snippet children({ data })}
@@ -69,3 +77,5 @@
 		{/snippet}
 	</BarChart>
 </Chart.Container>
+
+<!-- <BarChart data={dateSeriesData} x="date" y="value" xInterval={timeDay} {renderContext} {debug} /> -->

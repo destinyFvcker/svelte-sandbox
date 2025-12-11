@@ -1,6 +1,12 @@
 import type { PageLoad } from './$types.js';
 
-const possibleSubPages = ['simple', 'test-duration', 'official-example'];
+const possibleSubPages = [
+	'simple',
+	'test-duration1',
+	'official-example',
+	'test-duration2',
+	'test-duration3'
+];
 
 export const entries = () => {
 	return possibleSubPages.map((sub) => {
