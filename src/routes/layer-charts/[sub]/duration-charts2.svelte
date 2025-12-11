@@ -1,10 +1,11 @@
 <script lang="ts">
 	import * as Chart from '$lib/components/ui/chart/index.js';
+	import type { TooltipPayload } from '$lib/components/ui/chart/chart-utils.js';
 	import { BarChart, Highlight, Tooltip } from 'layerchart';
-	import { alternatingAlarmDataList } from '../(data)/test-alarm-duration-data';
-	import { scaleTime } from 'd3-scale';
+	import { alternatingAlarmDataList, type AlarmDuration } from '../(data)/test-alarm-duration-data';
+	import { scaleTime, scaleOrdinal } from 'd3-scale';
 	const chartConfig = {
-		// trigger: {
+		// triggered: {
 		// 	label: '报警状态',
 		// 	color: 'var(--color-danger)'
 		// },
@@ -70,6 +71,7 @@
 	}
 </script>
 
+<!-- cRange={['var(--color-success)', 'var(--color-danger)', 'var(--color-warning)']} -->
 <Chart.Container config={chartConfig} class="max-h-[400px] pl-3">
 	<BarChart
 		data={alternatingAlarmDataList}
@@ -79,6 +81,8 @@
 		xBaseline={undefined}
 		xNice={false}
 		c="status"
+		cScale={scaleOrdinal()}
+		cDomain={['release', 'triggered', 'warning']}
 		cRange={['var(--color-success)', 'var(--color-danger)', 'var(--color-warning)']}
 		grid={{ y: true, bandAlign: 'between' }}
 		orientation="horizontal"
@@ -90,6 +94,9 @@
 				radius: 0,
 				stroke: 'none'
 			},
+			highlight: {
+				bar: { radius: 0, class: 'stroke-current stroke-1 fill-none' }
+			},
 			tooltip: {
 				context: { mode: 'bounds' }
 			}
@@ -100,17 +107,47 @@
 			<Highlight area={{ class: 'fill-muted' }} />
 		{/snippet}
 		{#snippet tooltip({ context })}
-			<Tooltip.Root>
-				{#snippet children({ data })}
-					<Tooltip.Header>{data.category}</Tooltip.Header>
-					<Tooltip.List>
-						<Tooltip.Item label="状态" value={formatStatus(data.status)} />
-						<Tooltip.Item label="开始时间" value={data.start} format={formatTime} />
-						<Tooltip.Item label="结束时间" value={data.end} format={formatTime} />
-						<Tooltip.Item label="持续时间" value={formatDuration(data.start, data.end)} />
-					</Tooltip.List>
-				{/snippet}
-			</Tooltip.Root>
+			{#snippet customFormatter({ item }: { item: TooltipPayload })}
+				{@const data = item.payload as AlarmDuration}
+				{#if data}
+					<div class="grid gap-1.5">
+						<div class="flex items-center gap-2">
+							<div class="size-2.5 rounded-[2px]" style="background-color: {item.color}"></div>
+							<span class="text-muted-foreground">状态</span>
+							<span class="font-medium text-foreground">
+								{formatStatus(data.status)}
+							</span>
+						</div>
+						<div class="flex items-center gap-2">
+							<div class="size-2.5"></div>
+							<span class="text-muted-foreground">开始时间</span>
+							<span class="font-mono font-medium text-foreground tabular-nums">
+								{formatTime(data.start)}
+							</span>
+						</div>
+						<div class="flex items-center gap-2">
+							<div class="size-2.5"></div>
+							<span class="text-muted-foreground">结束时间</span>
+							<span class="font-mono font-medium text-foreground tabular-nums">
+								{formatTime(data.end)}
+							</span>
+						</div>
+						<div class="flex items-center gap-2">
+							<div class="size-2.5"></div>
+							<span class="text-muted-foreground">持续时间</span>
+							<span class="font-mono font-medium text-foreground tabular-nums">
+								{formatDuration(data.start, data.end)}
+							</span>
+						</div>
+					</div>
+				{/if}
+			{/snippet}
+			<Chart.Tooltip
+				labelKey="category"
+				indicator="line"
+				labelFormatter={(value) => value}
+				formatter={customFormatter}
+			/>
 		{/snippet}
 	</BarChart>
 </Chart.Container>
