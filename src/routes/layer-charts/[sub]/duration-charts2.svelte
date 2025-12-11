@@ -1,6 +1,6 @@
 <script lang="ts">
 	import * as Chart from '$lib/components/ui/chart/index.js';
-	import { BarChart, Highlight } from 'layerchart';
+	import { BarChart, Highlight, Tooltip } from 'layerchart';
 	import { alternatingAlarmDataList } from '../(data)/test-alarm-duration-data';
 	import { scaleTime } from 'd3-scale';
 	const chartConfig = {
@@ -33,6 +33,41 @@
 
 		return `${hours}:${minutes}:${seconds}`;
 	}
+
+	/**
+	 * 格式化状态显示文本
+	 * @param status - 报警状态
+	 * @returns 状态的中文显示文本
+	 */
+	function formatStatus(status: 'triggered' | 'warning' | 'release'): string {
+		const statusMap = {
+			triggered: '报警状态',
+			warning: '预警状态',
+			release: '正常状态'
+		};
+		return statusMap[status] || status;
+	}
+
+	/**
+	 * 计算持续时间并格式化为可读字符串
+	 * @param start - 开始时间
+	 * @param end - 结束时间
+	 * @returns 格式化的持续时间字符串
+	 */
+	function formatDuration(start: Date, end: Date): string {
+		const durationMs = end.getTime() - start.getTime();
+		const seconds = Math.floor(durationMs / 1000);
+		const minutes = Math.floor(seconds / 60);
+		const hours = Math.floor(minutes / 60);
+
+		if (hours > 0) {
+			return `${hours}小时${minutes % 60}分钟`;
+		} else if (minutes > 0) {
+			return `${minutes}分钟${seconds % 60}秒`;
+		} else {
+			return `${seconds}秒`;
+		}
+	}
 </script>
 
 <Chart.Container config={chartConfig} class="max-h-[400px] pl-3">
@@ -54,6 +89,9 @@
 			bars: {
 				radius: 0,
 				stroke: 'none'
+			},
+			tooltip: {
+				context: { mode: 'bounds' }
 			}
 		}}
 		padding={{ left: 20, bottom: 36, right: 20 }}
@@ -61,8 +99,18 @@
 		{#snippet belowMarks()}
 			<Highlight area={{ class: 'fill-muted' }} />
 		{/snippet}
-		{#snippet tooltip()}
-			<Chart.Tooltip />
+		{#snippet tooltip({ context })}
+			<Tooltip.Root>
+				{#snippet children({ data })}
+					<Tooltip.Header>{data.category}</Tooltip.Header>
+					<Tooltip.List>
+						<Tooltip.Item label="状态" value={formatStatus(data.status)} />
+						<Tooltip.Item label="开始时间" value={data.start} format={formatTime} />
+						<Tooltip.Item label="结束时间" value={data.end} format={formatTime} />
+						<Tooltip.Item label="持续时间" value={formatDuration(data.start, data.end)} />
+					</Tooltip.List>
+				{/snippet}
+			</Tooltip.Root>
 		{/snippet}
 	</BarChart>
 </Chart.Container>

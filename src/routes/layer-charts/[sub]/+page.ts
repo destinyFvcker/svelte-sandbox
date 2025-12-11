@@ -5,7 +5,8 @@ const possibleSubPages = [
 	'test-duration1',
 	'official-example',
 	'test-duration2',
-	'test-duration3'
+	'test-duration3',
+	'single-dimension-bar'
 ];
 
 export const entries = () => {

@@ -16,4 +16,7 @@
 	<li>
 		<a href="/layer-charts/test-duration3">测试-duration图3</a>
 	</li>
+	<li>
+		<a href="/layer-charts/single-dimension-bar">测试-单维度柱状图</a>
+	</li>
 </ol>

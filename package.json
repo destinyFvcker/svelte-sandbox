@@ -26,6 +26,8 @@
 		"@tailwindcss/vite": "^4.1.14",
 		"@tanstack/table-core": "^8.21.3",
 		"@types/d3": "^7.4.3",
+		"@types/d3-array": "^3.2.2",
+		"@types/d3-random": "^3.0.3",
 		"@types/d3-scale": "^4.0.9",
 		"@types/d3-shape": "^3.1.7",
 		"@types/node": "^24",
@@ -54,9 +56,12 @@
 		"@layerstack/utils": "^1.0.1",
 		"@sveltejs/adapter-static": "^3.0.10",
 		"@tanstack/svelte-virtual": "^3.13.12",
+		"@types/d3-time": "^3.0.4",
 		"d3-array": "^3.2.4",
+		"d3-random": "^3.0.1",
 		"d3-scale": "^4.0.2",
 		"d3-shape": "^3.2.0",
+		"d3-time": "^3.1.0",
 		"tailwind-scrollbar": "^4.0.2"
 	}
 }

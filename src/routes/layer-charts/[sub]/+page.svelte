@@ -5,6 +5,7 @@
 	import DurationCharts3 from './duration-charts3.svelte';
 	import OfficialExample from './official-example.svelte';
 	import SimpleChart from './simple-chart.svelte';
+	import SingleDimensionBar from './single-dimension-bar.svelte';
 
 	let { data }: PageProps = $props();
 </script>
@@ -19,6 +20,8 @@
 	<DurationCharts2 />
 {:else if data.sub == 'test-duration3'}
 	<DurationCharts3 />
+{:else if data.sub == 'single-dimension-bar'}
+	<SingleDimensionBar />
 {:else}
 	<h1>Layer Charts - Not Found</h1>
 {/if}
