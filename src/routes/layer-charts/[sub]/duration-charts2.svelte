@@ -95,7 +95,7 @@
 				stroke: 'none'
 			},
 			highlight: {
-				bar: { radius: 0, class: 'stroke-current stroke-1 fill-none' }
+				bar: { radius: 0, stroke: 'white', strokeWidth: 2, fill: 'none' }
 			},
 			tooltip: {
 				context: { mode: 'bounds' }
