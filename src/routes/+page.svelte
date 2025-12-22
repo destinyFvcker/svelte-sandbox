@@ -19,4 +19,8 @@
 	<li>
 		<a href="/layer-charts"> Layer Charts - examples </a>
 	</li>
+
+	<li>
+		<a href="/runed"> Runed - examples </a>
+	</li>
 </ol>

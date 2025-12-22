@@ -12,7 +12,7 @@ export interface AlarmDuration {
  * @param count 要生成的条目数量
  * @returns AlarmDuration 数组
  */
-function generateAlternatingStatusAlarmData(count: number): AlarmDuration[] {
+export function generateAlternatingStatusAlarmData(count: number): AlarmDuration[] {
 	const data: AlarmDuration[] = [];
 	const categories: string[] = [
 		'CPU_Usage_P95',

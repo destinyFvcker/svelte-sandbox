@@ -2,7 +2,11 @@
 	import * as Chart from '$lib/components/ui/chart/index.js';
 	import type { TooltipPayload } from '$lib/components/ui/chart/chart-utils.js';
 	import { BarChart, Highlight, Tooltip } from 'layerchart';
-	import { alternatingAlarmDataList, type AlarmDuration } from '../(data)/test-alarm-duration-data';
+	import {
+		alternatingAlarmDataList,
+		generateAlternatingStatusAlarmData,
+		type AlarmDuration
+	} from '../(data)/test-alarm-duration-data';
 	import { scaleTime, scaleOrdinal } from 'd3-scale';
 	const chartConfig = {
 		// triggered: {
@@ -74,7 +78,7 @@
 <!-- cRange={['var(--color-success)', 'var(--color-danger)', 'var(--color-warning)']} -->
 <Chart.Container config={chartConfig} class="max-h-[400px] pl-3">
 	<BarChart
-		data={alternatingAlarmDataList}
+		data={generateAlternatingStatusAlarmData(350)}
 		x={['start', 'end']}
 		xScale={scaleTime()}
 		y="category"
@@ -106,7 +110,7 @@
 		{#snippet belowMarks()}
 			<Highlight area={{ class: 'fill-muted' }} />
 		{/snippet}
-		{#snippet tooltip({ context })}
+		{#snippet tooltip()}
 			{#snippet customFormatter({ item }: { item: TooltipPayload })}
 				{@const data = item.payload as AlarmDuration}
 				{#if data}
