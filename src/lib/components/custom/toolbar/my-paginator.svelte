@@ -21,32 +21,31 @@
 
 	// 分页页号绑定
 	function getPage() {
-		// paginParam.page = getGlobalPage();
-		return paginParam.page;
+		return paginParam.pageIndex;
 	}
 	function setPage(newPage: number) {
-		paginParam.page = newPage;
-		paginIndexInput = paginParam.page.toString();
+		paginParam.pageIndex = newPage;
+		paginIndexInput = paginParam.pageIndex.toString();
 		onValueChange(paginParam);
 	}
 	// 分页大小绑定
 	function getPaginSize() {
-		return paginParam.page_size.toString();
+		return paginParam.pageSize.toString();
 	}
 	function setPaginSize(newValue: string) {
 		let newSize = Number.parseInt(newValue);
-		paginParam.page_size = newSize;
+		paginParam.pageSize = newSize;
 		onValueChange(paginParam);
 	}
 	// 页面输入框
-	let paginIndexInput = $state(paginParam.page.toString());
+	let paginIndexInput = $state(paginParam.pageIndex.toString());
 </script>
 
 <div class={cn('relative', ClassName)}>
 	<div class="flex flex-wrap items-center justify-center gap-2">
 		<Select.Root type="single" bind:value={getPaginSize, setPaginSize}>
 			<Select.Trigger class="h-8! w-fit cursor-pointer transition hover:scale-105"
-				>{paginParam.page_size}</Select.Trigger
+				>{paginParam.pageSize}</Select.Trigger
 			>
 			<Select.Content>
 				<Select.Item value="100">100</Select.Item>
@@ -100,12 +99,12 @@
 			class="w-16 px-0! text-center"
 			onkeydown={(e) => {
 				if (e.key === 'Enter') {
-					paginParam.page =
+					paginParam.pageIndex =
 						Number.parseInt(paginIndexInput) > 0 ? Number.parseInt(paginIndexInput) : 1;
 				}
 			}}
 			onblur={() => {
-				paginIndexInput = paginParam.page.toString();
+				paginIndexInput = paginParam.pageIndex.toString();
 			}}
 		/>
 	</div>

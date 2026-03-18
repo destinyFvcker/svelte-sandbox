@@ -26,6 +26,7 @@
 		class: ClassName
 	}: {
 		data: TData[];
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		columns: ColumnDef<TData, any>[];
 		paginator?: boolean;
 		height?: number | null;
@@ -49,6 +50,11 @@
 	const reactiveData = $derived(data);
 	const reactiveColumns = $derived(columns);
 
+	let paginParam: PaginParam = $derived({
+		pageIndex: tableStatus.pagination.pageIndex - 1,
+		pageSize: tableStatus.pagination.pageSize
+	});
+
 	let table = createSvelteTable({
 		get data() {
 			return reactiveData;
@@ -61,7 +67,7 @@
 				return tableStatus.sorting;
 			},
 			get pagination() {
-				return tableStatus.pagination;
+				return paginParam;
 			}
 		},
 		onSortingChange: (updater) => {
@@ -72,10 +78,19 @@
 			}
 		},
 		onPaginationChange: (updater) => {
+			console.log('onPaginationChange:', updater);
 			if (typeof updater === 'function') {
-				tableStatus.pagination = updater(tableStatus.pagination);
+				const newPaginParam = updater(tableStatus.pagination);
+				tableStatus.pagination = {
+					pageIndex: newPaginParam.pageIndex + 1,
+					pageSize: newPaginParam.pageSize
+				};
 			} else {
-				tableStatus.pagination = updater;
+				const newPaginParam = updater;
+				tableStatus.pagination = {
+					pageIndex: newPaginParam.pageIndex + 1,
+					pageSize: newPaginParam.pageSize
+				};
 			}
 		},
 		getCoreRowModel: getCoreRowModel(),
@@ -83,41 +98,19 @@
 		getSortedRowModel: getSortedRowModel()
 	});
 
-	// 确保在组件挂载后，特别是在延迟挂载的场景下（如 Dialog），强制触发一次更新
-	// 这解决了 Dialog 中表格数据为空的问题
-	$effect(() => {
-		// 访问 reactiveData 和 reactiveColumns 以确保响应式追踪建立
-		// 当数据或列发生变化时，这个 effect 会运行，确保表格正确更新
-		if (reactiveData.length > 0 && reactiveColumns.length > 0) {
-			// 通过访问 getRowModel 来确保表格内部状态正确更新
-			table.getRowModel();
-		}
-	});
-
 	// 使用 $derived 包装行数据，确保在延迟挂载时响应式追踪正确建立
 	const tableRows = $derived(table.getRowModel().rows);
-
-	let paginParam: PaginParam = $state({
-		page: 1,
-		page_size: paginator ? 100 : Number.MAX_SAFE_INTEGER
-	});
 </script>
 
-<!-- <div>pagin param: {JSON.stringify(paginParam)}</div>
-<div>table pagin param: {table.getPageOptions()}</div> -->
+<div>pagin param: {JSON.stringify(tableStatus.pagination)}</div>
+<div>table pagin param: {table.getPageOptions()}</div>
 
 <div class={cn('w-full space-y-2', ClassName)}>
 	{#if paginator}
 		<MyPaginator
-			bind:paginParam
+			bind:paginParam={tableStatus.pagination}
 			totalCnt={data.length}
-			pageSize={paginParam.page_size}
-			onValueChange={(param) => {
-				table.setPagination({
-					pageIndex: param.page - 1,
-					pageSize: param.page_size
-				});
-			}}
+			pageSize={tableStatus.pagination.pageSize}
 		/>
 	{/if}
 	<Table.Root
